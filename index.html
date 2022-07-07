@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="" />
+  <title>Singapore Covid Cases Visualisation</title>
+  <style>
+    .tooltip {
+        position: absolute;
+        color: #fff;
+        padding: 5px;
+        font: 14px sans-serif;	
+        background-color: rgba(56, 52, 52, 0.7);
+        border-radius: 5px;
+        white-space: pre-line;
+        text-align: left;
+        visibility: hidden;
+    }
+
+  </style>
+</head>
+<body>
+     <div id="choice">
+        <input type="radio" name="radio" value="r1" checked="checked"> 
+        Gender
+        <input type="radio" name="radio" value="r2"> 
+        Vaccination 
+    </div>
+    <svg></svg>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.13.0/d3-legend.js"></script>
+
+<script>
+
+let width = 800, 
+    height = 800;
+
+let svg = d3.select("svg")
+    .attr("viewBox", "0 0 " + width + " " + height)
+
+
+// Load external data
+Promise.all([
+        d3.json('https://chi-loong.github.io/CSC3007/assignments/links-sample.json'),
+        d3.json('https://chi-loong.github.io/CSC3007/assignments/cases-sample.json'),
+      ]).then((data => {
+
+// Data preprocessing
+    data[0].forEach(e => {
+        e.source = e.infector;
+        e.target = e.infectee;
+    });
+
+    data[1].forEach(e => {
+    if(e.gender == 'male'){
+        e.gender = "male";
+    }else{
+        e.gender = "female";
+    }
+    });
+    
+    console.log(data[0]); //links
+    console.log(data[1]); //cases
+
+    var tooltip = d3.select("body")
+          .append("div")	
+          .attr("class", "tooltip")
+          .style("opacity", 0);
+
+    let genderColour = d3.scaleOrdinal()
+        .domain(["male","female"])
+        .range(["steelblue", "pink"]);
+    
+    var legendLabel = ["Male ", "Female"];
+
+    // let vaccinationColour= d3.scaleOrdinal()
+    //     .domain(vaccinationStatus)
+    //     .range(d3.schemeCategory10);
+
+    // var tooltip = d3.select("body")
+    //       .append("div")	
+    //       .attr("class", "tooltip")
+    //       .style("opacity", 0);
+ 
+//nodes
+    let node = svg.append("g")
+    .attr("id", "nodes")
+    .selectAll("circle")
+    .data(data[1])
+    .enter()
+    .append("circle")
+    .attr("r", 15)
+    .style("fill", d => {
+        return genderColour(d.gender);
+    })
+
+    .call(d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended))
+
+    .on("mouseover", (event, d) => {
+        d3.select(event.currentTarget)
+           .attr("opacity", 1)	
+           tooltip.html("<b>Id: </b>" + d.id + 
+                        "<b>Age: </b>" + d.age + 
+                        "<b>Gender: </b>" + d.gender + 
+                        "<br><b>Nationality: </b>" + d.nationality + 
+                        "<br><b>Vaccinated: </b>" + d.vaccinated + 
+                        "<br><b>Occupation: </b>" + d.occupation)
+                .style("visibility", "visible")
+                .style("opacity", 1)
+                .style('left', event.pageX + "px")
+                .style('top', event.pageY - 10 + "px");
+    })
+
+    .on("mouseout", (event, d) => {	
+            d3.select(event.currentTarget)
+            .attr("opacity", 0.5);
+                tooltip.style("visibility", "hidden");
+    })
+
+//arrow head
+    svg.append("defs").append("marker")
+            .attr("id", "marker")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 10)
+            .attr("refY", 0)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L11,0L0,5")
+            .attr('fill', 'black')
+            .style('stroke','none')
+
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+    }
+
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+
+// links
+    let linkpath = svg.append("g")
+        .attr("id", "links")
+        .selectAll("path")
+        .data(data[0])
+        .enter()
+        .append("path")
+        .attr("fill", "none")
+        .attr("stroke", "black")
+        .attr("marker-end", "url(#marker)");
+
+ // force each node towards center   
+    let simulation = d3.forceSimulation()
+        .nodes(data[1])
+        .force("x", d3.forceX().strength(0.5).x( 1000 / 2 ))
+        .force("y", d3.forceY().strength(0.1).y( 800 /2 ))
+        .force("charge", d3.forceManyBody().strength(-30))
+        .force("link", d3.forceLink(data[0]).id(d => d.id).distance(100).strength(0.5))
+        .force("collide", d3.forceCollide().strength(0.5).radius(30))
+        .on("tick", d => {
+            node
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+            linkpath
+            .attr("d", d => "M" + d.source.x + " " + d.source.y + " " + d.target.x + "," + d.target.y);
+        });
+    
+
+    var legend = svg.selectAll("g.legend")
+        .data([0, 1])
+        .enter().append("g")
+        .attr("class", "legend");
+    
+        var ls_w = 20, ls_h = 20;
+    
+        legend.append("rect")
+        .attr("x", 20)
+        .attr("y", function(d, i){ return height - (i*ls_h) - 2*ls_h;})
+        .attr("width", ls_w)
+        .attr("height", ls_h)
+        .style("fill", function(d, i) { return genderColour(d); })
+        .style("opacity", 0.8);
+    
+        legend.append("text")
+        .attr("x", 50)
+        .attr("y", function(d, i){ return height - (i*ls_h) - ls_h - 4;})
+        .text(function(d, i){ return legendLabel[i]; });
+
+}))
+
+</script>
+
+</body>
+</html>
