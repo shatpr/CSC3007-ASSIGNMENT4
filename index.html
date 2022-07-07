@@ -11,22 +11,22 @@
         color: #fff;
         padding: 5px;
         font: 14px sans-serif;	
-        background-color: rgba(56, 52, 52, 0.7);
+        background-color: rgba(29, 27, 27, 0.7);
         border-radius: 5px;
         white-space: pre-line;
         text-align: left;
-        visibility: hidden;
+        
     }
 
   </style>
 </head>
 <body>
-     <div id="choice">
+     <!-- <div id="choice">
         <input type="radio" name="radio" value="r1" checked="checked"> 
         Gender
         <input type="radio" name="radio" value="r2"> 
         Vaccination 
-    </div>
+    </div> -->
     <svg></svg>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -91,22 +91,19 @@ Promise.all([
     .data(data[1])
     .enter()
     .append("circle")
-    .attr("r", 15)
+    .attr("r", 20)
     .style("fill", d => {
         return genderColour(d.gender);
     })
 
-    .call(d3.drag()
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended))
+    
 
     .on("mouseover", (event, d) => {
         d3.select(event.currentTarget)
            .attr("opacity", 1)	
-           tooltip.html("<b>Id: </b>" + d.id + 
-                        "<b>Age: </b>" + d.age + 
-                        "<b>Gender: </b>" + d.gender + 
+           tooltip.html("ID: " + d.id + 
+                        "<br>Age: </b>" + d.age + 
+                        "<br>Gender: </b>" + d.gender + 
                         "<br><b>Nationality: </b>" + d.nationality + 
                         "<br><b>Vaccinated: </b>" + d.vaccinated + 
                         "<br><b>Occupation: </b>" + d.occupation)
@@ -135,6 +132,11 @@ Promise.all([
             .attr("d", "M0,-5L11,0L0,5")
             .attr('fill', 'black')
             .style('stroke','none')
+
+    .call(d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended))
 
     function dragstarted(event, d) {
         if (!event.active) simulation.alphaTarget(0.3).restart();
